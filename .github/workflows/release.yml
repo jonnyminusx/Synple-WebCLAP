@@ -1,25 +1,19 @@
-name: Build and deploy
+name: Build and release wasm
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    tags:
+      - "v*"
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: write
 
 env:
   WASI_SDK_VERSION: "34"
 
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,19 +38,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$WASI_SDK_PATH/share/cmake/wasi-sdk-p1.cmake"
           cmake --build build
 
-      - run: scripts/build-site.sh
-
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
         with:
-          path: site
-
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          files: build/synple.wclap.wasm
